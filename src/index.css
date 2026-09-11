@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  /* TCSN Network brand palette, drawn from the logo mark */
+  --color-navy-50: #ecf1fd;
+  --color-navy-100: #d9e3fc;
+  --color-navy-200: #afc4f8;
+  --color-navy-300: #769af4;
+  --color-navy-400: #2f65ee;
+  --color-navy-500: #1043c6;
+  --color-navy-600: #0b308e;
+  --color-navy-700: #082368;
+  --color-navy-800: #061a4b;
+  --color-navy-900: #041234;
+  --color-navy-950: #030b21;
+
+  --color-green-50: #f3fbef;
+  --color-green-100: #e1f4d7;
+  --color-green-200: #c4eaae;
+  --color-green-300: #a0dd7e;
+  --color-green-400: #7acf49;
+  --color-green-500: #61b630;
+  --color-green-600: #4f9527;
+  --color-green-700: #3e751f;
+  --color-green-800: #2f5917;
+  --color-green-900: #224111;
+  --color-green-950: #15280b;
+
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+}
