@@ -8,7 +8,6 @@ import {
   ArrowRight,
   SlidersHorizontal,
   X,
-  Loader2,
   Image as ImageIcon,
 } from "lucide-react";
 
@@ -106,6 +105,7 @@ export default function Opportunities() {
       setOpportunities(data || []);
     } catch (err) {
       console.error("Error loading opportunities:", err);
+
       setError(
         err?.message ||
           "We couldn't load opportunities right now. Please try again."
@@ -118,10 +118,6 @@ export default function Opportunities() {
   useEffect(() => {
     loadOpportunities();
 
-    /*
-      Keep the public marketplace fresh when an admin/client
-      creates, updates, or deletes an opportunity.
-    */
     const channel = supabase
       .channel("public-opportunities")
       .on(
@@ -179,32 +175,42 @@ export default function Opportunities() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      {/* HERO */}
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+      {/* HERO SECTION WITH CLEARER BACKGROUND IMAGE */}
+      <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950 text-white">
+        {/* Background Image Container */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=2000&q=80"
+            alt="Hero background"
+            className="h-full w-full object-cover object-center opacity-65"
+          />
+          {/* Lighter Gradient Overlay to keep image clear while keeping text legible */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/60 to-transparent" />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-600">
-              <BriefcaseBusiness className="h-4 w-4" />
-              SkillForge Opportunities
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-600/80 bg-slate-900/80 px-4 py-2 text-sm font-semibold text-slate-200 backdrop-blur-md">
+              <BriefcaseBusiness className="h-4 w-4 text-slate-400" />
+              TCSN Opportunities
             </div>
 
-            <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+            <h1 className="text-4xl font-black tracking-tight text-white drop-shadow-sm sm:text-5xl lg:text-6xl">
               Find work.
-              <span className="block text-orange-500">
-                Build your future.
-              </span>
+              <span className="block text-slate-200">Build your future.</span>
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+            <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-200 drop-shadow-sm sm:text-lg">
               Discover real projects and opportunities posted by clients and
-              the SkillForge team. Find work that matches your skills and
+              the TCSN team. Find work that matches your skills and
               submit an application.
             </p>
           </div>
 
-          {/* SEARCH */}
+          {/* SEARCH BAR */}
           <div className="mt-10 max-w-4xl">
-            <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:flex-row">
+            <div className="flex flex-col gap-3 rounded-2xl border border-slate-600/60 bg-slate-950/80 p-3 shadow-2xl backdrop-blur-md sm:flex-row">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
 
@@ -213,13 +219,13 @@ export default function Opportunities() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search opportunities, skills, categories..."
-                  className="w-full rounded-xl border-0 bg-slate-50 py-3.5 pl-12 pr-4 text-sm text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-orange-500"
+                  className="w-full rounded-xl border border-slate-700/60 bg-slate-900/90 py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-slate-400 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-400"
                 />
               </div>
 
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-orange-300 hover:text-orange-600"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 bg-slate-900/90 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:border-slate-400 hover:bg-slate-800 hover:text-white"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
@@ -243,8 +249,8 @@ export default function Opportunities() {
                 onClick={() => setCategory(item.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                   active
-                    ? "bg-orange-500 text-white shadow-sm"
-                    : "border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-600"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-400 hover:text-slate-900"
                 }`}
               >
                 {item.label}
@@ -275,7 +281,7 @@ export default function Opportunities() {
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex items-center gap-2 self-start text-sm font-semibold text-orange-600 hover:text-orange-700 sm:self-auto"
+              className="inline-flex items-center gap-2 self-start text-sm font-semibold text-slate-700 hover:text-slate-950 sm:self-auto"
             >
               <X className="h-4 w-4" />
               Clear filters
@@ -318,7 +324,7 @@ export default function Opportunities() {
             <button
               type="button"
               onClick={loadOpportunities}
-              className="mt-5 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+              className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Try again
             </button>
@@ -346,7 +352,7 @@ export default function Opportunities() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="mt-5 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
+                className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Clear filters
               </button>
@@ -363,7 +369,7 @@ export default function Opportunities() {
               return (
                 <article
                   key={opportunity.id}
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-xl"
                 >
                   {/* IMAGE */}
                   <div className="relative h-52 overflow-hidden bg-slate-100">
@@ -380,7 +386,7 @@ export default function Opportunities() {
                     )}
 
                     <div className="absolute left-4 top-4">
-                      <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold capitalize text-slate-700 shadow-sm backdrop-blur">
+                      <span className="rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-bold capitalize text-slate-700 shadow-sm backdrop-blur">
                         {opportunity.category || "General"}
                       </span>
                     </div>
@@ -389,7 +395,7 @@ export default function Opportunities() {
                   {/* CONTENT */}
                   <div className="p-6">
                     <div className="mb-3">
-                      <span className="text-lg font-black text-orange-500">
+                      <span className="text-lg font-black text-slate-900">
                         {formatCurrency(opportunity.budget)}
                       </span>
                     </div>
@@ -409,6 +415,7 @@ export default function Opportunities() {
                       {opportunity.location && (
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                           <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+
                           <span className="truncate">
                             {opportunity.location}
                           </span>
@@ -418,6 +425,7 @@ export default function Opportunities() {
                       {opportunity.deadline && (
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                           <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
+
                           <span>
                             Deadline: {formatDate(opportunity.deadline)}
                           </span>
@@ -427,6 +435,7 @@ export default function Opportunities() {
                       {opportunity.project_type && (
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                           <BriefcaseBusiness className="h-4 w-4 shrink-0 text-slate-400" />
+
                           <span className="capitalize">
                             {opportunity.project_type}
                           </span>
@@ -438,14 +447,16 @@ export default function Opportunities() {
                     {Array.isArray(opportunity.skills) &&
                       opportunity.skills.length > 0 && (
                         <div className="mt-5 flex flex-wrap gap-2">
-                          {opportunity.skills.slice(0, 4).map((skill, index) => (
-                            <span
-                              key={`${skill}-${index}`}
-                              className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600"
-                            >
-                              {skill}
-                            </span>
-                          ))}
+                          {opportunity.skills
+                            .slice(0, 4)
+                            .map((skill, index) => (
+                              <span
+                                key={`${skill}-${index}`}
+                                className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-600"
+                              >
+                                {skill}
+                              </span>
+                            ))}
 
                           {opportunity.skills.length > 4 && (
                             <span className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-500">
@@ -458,7 +469,7 @@ export default function Opportunities() {
                     {/* ACTION */}
                     <Link
                       to={`/opportunities/${opportunity.id}`}
-                      className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-orange-500"
+                      className="mt-6 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-bold text-white transition hover:bg-slate-800"
                     >
                       View Opportunity
                       <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
