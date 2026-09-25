@@ -22,7 +22,7 @@ export default function Navbar() {
     },
     {
       name: "Opportunities",
-      path: "/jobs",
+      path: "/opportunities",
     },
   ];
 

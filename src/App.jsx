@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
+import Opportunities from "./pages/Opportunities";
 
 import AdminRoute from "./admin/AdminRoute";
 import AdminLayout from "./admin/AdminLayout";
@@ -57,6 +58,11 @@ function App() {
           path="/auth/callback"
           element={<AuthCallback />}
         />
+
+        <Route
+  path="/opportunities"
+  element={<Opportunities />}
+/>
 
       </Route>
 

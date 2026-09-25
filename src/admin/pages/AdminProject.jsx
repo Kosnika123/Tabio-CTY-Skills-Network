@@ -67,14 +67,12 @@ export default function AdminProjects() {
               id,
               full_name,
               username,
-              email,
               avatar_url
             ),
             talent:talent_id (
               id,
               full_name,
               username,
-              email,
               avatar_url
             )
           `
