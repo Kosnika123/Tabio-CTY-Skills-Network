@@ -175,17 +175,17 @@ export default function Opportunities() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      {/* HERO SECTION WITH CLEARER BACKGROUND IMAGE */}
+      {/* HERO SECTION WITH YOUTH LEARNING / COLLABORATION BACKGROUND */}
       <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950 text-white">
         {/* Background Image Container */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=2000&q=80"
-            alt="Hero background"
-            className="h-full w-full object-cover object-center opacity-65"
+            src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=2000&q=80"
+            alt="Students and young adults learning and working together"
+            className="h-full w-full object-cover object-center opacity-80"
           />
-          {/* Lighter Gradient Overlay to keep image clear while keeping text legible */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-950/60 to-transparent" />
+          {/* Subtle gradient overlay to enhance focus and ensure dark text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/60 to-slate-950/30" />
         </div>
 
         {/* Hero Content */}
