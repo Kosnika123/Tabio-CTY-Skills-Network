@@ -115,31 +115,23 @@ export default function AdminOpportunities() {
 
       const { data, error: fetchError } = await supabase
         .from("opportunities")
-        .select(
-          `
-            id,
-            title,
-            short_description,
-            description,
-            category,
-            budget,
-            deadline,
-            location,
-            project_type,
-            skills,
-            images,
-            status,
-            client_id,
-            created_at,
-            updated_at,
-            client:client_id (
-              id,
-              full_name,
-              username,
-              avatar_url
-            )
-          `
-        )
+        .select(`
+          id,
+          title,
+          short_description,
+          description,
+          category,
+          budget,
+          deadline,
+          location,
+          project_type,
+          skills,
+          images,
+          status,
+          client_id,
+          created_at,
+          updated_at
+        `)
         .order("created_at", {
           ascending: false,
         });
