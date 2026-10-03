@@ -6,6 +6,7 @@ import {
   Users,
   Palette,
   BriefcaseBusiness,
+  FileText,
   FolderKanban,
   CreditCard,
   Flag,
@@ -43,6 +44,11 @@ const navigation = [
         name: "Opportunities",
         path: "/admin/jobs",
         icon: BriefcaseBusiness,
+      },
+      {
+        name: "Applications",
+        path: "/admin/applications",
+        icon: FileText,
       },
       {
         name: "Projects",

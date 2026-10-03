@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowUpRight,
   BriefcaseBusiness,
   CalendarDays,
+  Check,
   CheckCircle2,
   Clock3,
   Image as ImageIcon,
+  Loader2,
   MapPin,
   Wallet,
+  X,
 } from "lucide-react";
 
 import { supabase } from "../lib/supabase";
@@ -50,81 +54,260 @@ function getImages(images) {
 
 export default function OpportunityDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [opportunity, setOpportunity] = useState(null);
+
   const [loading, setLoading] = useState(true);
+  const [applicationLoading, setApplicationLoading] =
+    useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const [error, setError] = useState("");
+  const [applicationError, setApplicationError] =
+    useState("");
+
+  const [application, setApplication] = useState(null);
 
   const [activeImage, setActiveImage] = useState(0);
 
-  useEffect(() => {
-    async function loadOpportunity() {
-      try {
-        setLoading(true);
-        setError("");
+  async function loadOpportunity() {
+    try {
+      setLoading(true);
+      setError("");
 
-        const { data, error: fetchError } = await supabase
-          .from("opportunities")
+      const { data, error: fetchError } = await supabase
+        .from("opportunities")
+        .select(`
+          id,
+          title,
+          short_description,
+          description,
+          category,
+          budget,
+          deadline,
+          status,
+          images,
+          location,
+          project_type,
+          skills,
+          created_at
+        `)
+        .eq("id", id)
+        .eq("status", "open")
+        .single();
+
+      if (fetchError) {
+        throw fetchError;
+      }
+
+      setOpportunity(data);
+    } catch (err) {
+      console.error(
+        "Failed to load opportunity:",
+        err
+      );
+
+      setError(
+        err?.message ||
+          "We couldn't load this opportunity right now."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function checkApplication() {
+    try {
+      setApplicationLoading(true);
+      setApplicationError("");
+
+      /*
+       * Get currently logged-in user.
+       */
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      /*
+       * User is not logged in.
+       * That's okay — they can still view the opportunity.
+       */
+      if (!user) {
+        setApplication(null);
+        return;
+      }
+
+      /*
+       * Check whether this user already applied.
+       */
+      const { data, error: applicationFetchError } =
+        await supabase
+          .from("applications")
           .select(`
             id,
-            title,
-            short_description,
-            description,
-            category,
-            budget,
-            deadline,
+            opportunity_id,
+            talent_id,
+            cover_message,
             status,
-            images,
-            location,
-            project_type,
-            skills,
-            created_at
+            created_at,
+            updated_at
           `)
-          .eq("id", id)
-          .eq("status", "open")
-          .single();
+          .eq("opportunity_id", id)
+          .eq("talent_id", user.id)
+          .maybeSingle();
 
-        if (fetchError) {
-          throw fetchError;
-        }
-
-        setOpportunity(data);
-      } catch (err) {
-        console.error("Failed to load opportunity:", err);
-
-        setError(
-          err?.message ||
-            "We couldn't load this opportunity right now."
-        );
-      } finally {
-        setLoading(false);
+      if (applicationFetchError) {
+        throw applicationFetchError;
       }
-    }
 
-    if (id) {
-      loadOpportunity();
+      setApplication(data || null);
+    } catch (err) {
+      console.error(
+        "Failed to check application:",
+        err
+      );
+
+      setApplicationError(
+        err?.message ||
+          "We couldn't check your application status."
+      );
+    } finally {
+      setApplicationLoading(false);
     }
+  }
+
+  useEffect(() => {
+    if (!id) return;
+
+    loadOpportunity();
+    checkApplication();
   }, [id]);
 
-  /* -------------------------------- */
-  /* LOADING */
-  /* -------------------------------- */
+  async function handleApply() {
+    try {
+      setSubmitting(true);
+      setApplicationError("");
+
+      /*
+       * Make sure the user is logged in.
+       */
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        /*
+         * Send the user to login.
+         *
+         * We include the opportunity URL so that after
+         * logging in you can later return them here.
+         */
+        navigate(
+          `/login?redirect=/opportunities/${id}`
+        );
+
+        return;
+      }
+
+      /*
+       * Check again before inserting.
+       * This protects against duplicate applications
+       * even if the page state is outdated.
+       */
+      const { data: existingApplication, error: checkError } =
+        await supabase
+          .from("applications")
+          .select("id, status")
+          .eq("opportunity_id", id)
+          .eq("talent_id", user.id)
+          .maybeSingle();
+
+      if (checkError) {
+        throw checkError;
+      }
+
+      if (existingApplication) {
+        setApplication(existingApplication);
+        return;
+      }
+
+      /*
+       * Create the application.
+       *
+       * We intentionally do NOT set talent_id from
+       * anything supplied by the frontend form.
+       *
+       * It comes directly from auth.uid().
+       */
+      const { data: newApplication, error: insertError } =
+        await supabase
+          .from("applications")
+          .insert({
+            opportunity_id: id,
+            talent_id: user.id,
+            status: "pending",
+          })
+          .select(`
+            id,
+            opportunity_id,
+            talent_id,
+            cover_message,
+            status,
+            created_at,
+            updated_at
+          `)
+          .single();
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      setApplication(newApplication);
+    } catch (err) {
+      console.error(
+        "Failed to submit application:",
+        err
+      );
+
+      /*
+       * Handle duplicate application gracefully in case
+       * two requests happen at almost the same time.
+       */
+      if (
+        err?.code === "23505" ||
+        err?.message?.includes(
+          "unique_talent_opportunity"
+        )
+      ) {
+        await checkApplication();
+        return;
+      }
+
+      setApplicationError(
+        err?.message ||
+          "We couldn't submit your application. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
           <div className="h-5 w-32 animate-pulse rounded bg-slate-200" />
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_0.8fr]">
-
             <div>
               <div className="h-[360px] animate-pulse rounded-3xl bg-slate-200 sm:h-[460px]" />
 
               <div className="mt-8 space-y-4">
                 <div className="h-8 w-2/3 animate-pulse rounded bg-slate-200" />
+
                 <div className="h-5 w-full animate-pulse rounded bg-slate-200" />
+
                 <div className="h-5 w-5/6 animate-pulse rounded bg-slate-200" />
               </div>
             </div>
@@ -136,15 +319,10 @@ export default function OpportunityDetails() {
     );
   }
 
-  /* -------------------------------- */
-  /* ERROR / NOT FOUND */
-  /* -------------------------------- */
-
   if (error || !opportunity) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
         <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
             <BriefcaseBusiness className="h-7 w-7 text-slate-400" />
           </div>
@@ -165,7 +343,6 @@ export default function OpportunityDetails() {
             <ArrowLeft className="h-4 w-4" />
             Back to Opportunities
           </Link>
-
         </div>
       </main>
     );
@@ -179,16 +356,13 @@ export default function OpportunityDetails() {
 
   const hasDeadline = Boolean(opportunity.deadline);
 
+  const applicationStatus = application?.status;
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-
-      {/* ================================= */}
-      {/* TOP NAV / BACK */}
-      {/* ================================= */}
-
+      {/* Top bar */}
       <div className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-
           <Link
             to="/opportunities"
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-950"
@@ -196,29 +370,16 @@ export default function OpportunityDetails() {
             <ArrowLeft className="h-4 w-4" />
             Back to Opportunities
           </Link>
-
         </div>
       </div>
 
-      {/* ================================= */}
-      {/* MAIN */}
-      {/* ================================= */}
-
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-
-          {/* ================================= */}
-          {/* LEFT */}
-          {/* ================================= */}
-
+          {/* Main content */}
           <div className="min-w-0">
-
-            {/* IMAGE */}
+            {/* Images */}
             <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-
               <div className="relative h-[280px] bg-slate-100 sm:h-[420px]">
-
                 {images.length > 0 ? (
                   <img
                     src={images[activeImage]}
@@ -238,10 +399,7 @@ export default function OpportunityDetails() {
                     {opportunity.category || "General"}
                   </span>
                 </div>
-
               </div>
-
-              {/* IMAGE THUMBNAILS */}
 
               {images.length > 1 && (
                 <div className="flex gap-3 overflow-x-auto p-4">
@@ -258,22 +416,19 @@ export default function OpportunityDetails() {
                     >
                       <img
                         src={image}
-                        alt={`${opportunity.title} ${index + 1}`}
+                        alt={`${opportunity.title} ${
+                          index + 1
+                        }`}
                         className="h-full w-full object-cover"
                       />
                     </button>
                   ))}
                 </div>
               )}
-
             </div>
 
-            {/* ================================= */}
-            {/* OPPORTUNITY INFORMATION */}
-            {/* ================================= */}
-
+            {/* Heading */}
             <div className="mt-8">
-
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -296,15 +451,10 @@ export default function OpportunityDetails() {
                   {opportunity.short_description}
                 </p>
               )}
-
             </div>
 
-            {/* ================================= */}
-            {/* ABOUT */}
-            {/* ================================= */}
-
+            {/* Description */}
             <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-
               <h2 className="text-xl font-black text-slate-950">
                 About this opportunity
               </h2>
@@ -313,16 +463,11 @@ export default function OpportunityDetails() {
                 {opportunity.description ||
                   "No additional description was provided for this opportunity."}
               </div>
-
             </div>
 
-            {/* ================================= */}
-            {/* SKILLS */}
-            {/* ================================= */}
-
+            {/* Skills */}
             {skills.length > 0 && (
               <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-
                 <h2 className="text-xl font-black text-slate-950">
                   Skills needed
                 </h2>
@@ -337,19 +482,13 @@ export default function OpportunityDetails() {
                     </span>
                   ))}
                 </div>
-
               </div>
             )}
 
-            {/* ================================= */}
-            {/* LOCATION / PROJECT INFORMATION */}
-            {/* ================================= */}
-
+            {/* Information */}
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-
               {opportunity.location && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
                     <MapPin className="h-5 w-5 text-slate-600" />
                   </div>
@@ -361,13 +500,11 @@ export default function OpportunityDetails() {
                   <p className="mt-1 text-sm font-bold text-slate-900">
                     {opportunity.location}
                   </p>
-
                 </div>
               )}
 
               {opportunity.project_type && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
                     <BriefcaseBusiness className="h-5 w-5 text-slate-600" />
                   </div>
@@ -379,26 +516,16 @@ export default function OpportunityDetails() {
                   <p className="mt-1 text-sm font-bold capitalize text-slate-900">
                     {opportunity.project_type}
                   </p>
-
                 </div>
               )}
-
             </div>
-
           </div>
 
-          {/* ================================= */}
-          {/* RIGHT SIDEBAR */}
-          {/* ================================= */}
-
+          {/* Sidebar */}
           <aside className="lg:sticky lg:top-24 lg:self-start">
-
             <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-
-              {/* BUDGET */}
-
+              {/* Budget */}
               <div className="border-b border-slate-100 p-6 sm:p-7">
-
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Project Budget
                 </p>
@@ -406,15 +533,11 @@ export default function OpportunityDetails() {
                 <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">
                   {formatCurrency(opportunity.budget)}
                 </p>
-
               </div>
 
-              {/* DETAILS */}
-
+              {/* Details */}
               <div className="divide-y divide-slate-100">
-
                 <div className="flex items-start gap-4 p-6">
-
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                     <CalendarDays className="h-5 w-5 text-slate-600" />
                   </div>
@@ -426,15 +549,15 @@ export default function OpportunityDetails() {
 
                     <p className="mt-1 text-sm font-bold text-slate-900">
                       {hasDeadline
-                        ? formatDate(opportunity.deadline)
+                        ? formatDate(
+                            opportunity.deadline
+                          )
                         : "No deadline specified"}
                     </p>
                   </div>
-
                 </div>
 
                 <div className="flex items-start gap-4 p-6">
-
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                     <MapPin className="h-5 w-5 text-slate-600" />
                   </div>
@@ -445,14 +568,13 @@ export default function OpportunityDetails() {
                     </p>
 
                     <p className="mt-1 text-sm font-bold text-slate-900">
-                      {opportunity.location || "Remote"}
+                      {opportunity.location ||
+                        "Remote"}
                     </p>
                   </div>
-
                 </div>
 
                 <div className="flex items-start gap-4 p-6">
-
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                     <Wallet className="h-5 w-5 text-slate-600" />
                   </div>
@@ -466,42 +588,162 @@ export default function OpportunityDetails() {
                       Fixed Project Budget
                     </p>
                   </div>
-
                 </div>
-
               </div>
 
-              {/* APPLY */}
-
+              {/* Application area */}
               <div className="border-t border-slate-100 p-6 sm:p-7">
+                {applicationLoading ? (
+                  <div className="flex h-14 items-center justify-center rounded-xl bg-slate-100">
+                    <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+                  </div>
+                ) : applicationStatus ===
+                  "pending" ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                        <Clock3 className="h-4 w-4 text-amber-700" />
+                      </div>
 
-                <button
-                  type="button"
-                  className="group flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-slate-900/10 transition hover:bg-slate-800"
-                >
-                  Apply for this opportunity
-                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                </button>
+                      <div>
+                        <p className="text-sm font-black text-amber-900">
+                          Application submitted
+                        </p>
 
-                <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-400">
-                  <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="mt-1 text-xs leading-5 text-amber-700">
+                          Your application is waiting for
+                          the admin to review it.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : applicationStatus ===
+                  "shortlisted" ? (
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                        <CheckCircle2 className="h-4 w-4 text-blue-700" />
+                      </div>
 
-                  <p>
-                    Applying lets the opportunity owner know that you're
-                    interested in working on this project.
-                  </p>
-                </div>
+                      <div>
+                        <p className="text-sm font-black text-blue-900">
+                          You've been shortlisted
+                        </p>
 
+                        <p className="mt-1 text-xs leading-5 text-blue-700">
+                          Your application has been
+                          shortlisted for this opportunity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : applicationStatus ===
+                  "accepted" ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                        <Check className="h-4 w-4 text-emerald-700" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-black text-emerald-900">
+                          Application accepted
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-emerald-700">
+                          Congratulations. Your application
+                          was accepted for this opportunity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : applicationStatus ===
+                  "rejected" ? (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100">
+                        <X className="h-4 w-4 text-red-700" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-black text-red-900">
+                          Application not selected
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-red-700">
+                          Your application was not selected
+                          for this opportunity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : applicationStatus ===
+                  "withdrawn" ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-100 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-200">
+                        <X className="h-4 w-4 text-slate-600" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-black text-slate-800">
+                          Application withdrawn
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-slate-500">
+                          You withdrew your application for
+                          this opportunity.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {applicationError && (
+                      <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+
+                        <p className="text-xs leading-5 text-red-700">
+                          {applicationError}
+                        </p>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleApply}
+                      disabled={submitting}
+                      className="group flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-slate-900/10 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Applying...
+                        </>
+                      ) : (
+                        <>
+                          Apply for this opportunity
+                          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-400">
+                      <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
+
+                      <p>
+                        Applying sends your application
+                        to the opportunity administrator for
+                        review.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
-
             </div>
-
           </aside>
-
         </div>
-
       </section>
-
     </main>
   );
 }

@@ -16,6 +16,7 @@ import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminUsers from "./admin/pages/AdminUsers";
 import AdminTalent from "./admin/pages/AdminTalent";
 import AdminOpportunities from "./admin/pages/AdminOpportunities";
+import AdminApplications from "./admin/pages/AdminApplications";
 import AdminProjects from "./admin/pages/AdminProject";
 import AdminTransactions from "./admin/pages/AdminTransactions";
 import AdminReports from "./admin/pages/AdminReports";
@@ -138,6 +139,11 @@ function App() {
           />
 
           <Route
+            path="/admin/applications"
+            element={<AdminApplications />}
+          />
+
+          <Route
             path="/admin/projects"
             element={<AdminProjects />}
           />
@@ -171,4 +177,3 @@ function App() {
 }
 
 export default App;
-
