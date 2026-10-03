@@ -136,6 +136,10 @@ export default function AdminOpportunities() {
           ascending: false,
         });
 
+      console.log("SUPABASE OPPORTUNITIES:", data);
+      console.log("SUPABASE OPPORTUNITIES COUNT:", data?.length);
+      console.log("SUPABASE FETCH ERROR:", fetchError);
+
       if (fetchError) {
         throw fetchError;
       }
