@@ -127,7 +127,10 @@ export default function OpportunityDetails() {
        */
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
 
       /*
        * User is not logged in.
@@ -148,7 +151,8 @@ export default function OpportunityDetails() {
             id,
             opportunity_id,
             talent_id,
-            cover_message,
+            cover_letter,
+            proposed_price,
             status,
             created_at,
             updated_at
@@ -189,57 +193,42 @@ export default function OpportunityDetails() {
       setSubmitting(true);
       setApplicationError("");
 
-      /*
-       * Make sure the user is logged in.
-       */
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
-        /*
-         * Send the user to login.
-         *
-         * We include the opportunity URL so that after
-         * logging in you can later return them here.
-         */
-        navigate(
-          `/login?redirect=/opportunities/${id}`
-        );
+      if (userError) throw userError;
 
+      if (!user) {
+        navigate(`/login?redirect=/opportunities/${id}`);
         return;
       }
 
-      /*
-       * Check again before inserting.
-       * This protects against duplicate applications
-       * even if the page state is outdated.
-       */
-      const { data: existingApplication, error: checkError } =
+      const { data: existingApplication, error: existingError } =
         await supabase
           .from("applications")
-          .select("id, status")
+          .select(`
+            id,
+            opportunity_id,
+            talent_id,
+            cover_letter,
+            proposed_price,
+            status,
+            created_at,
+            updated_at
+          `)
           .eq("opportunity_id", id)
           .eq("talent_id", user.id)
           .maybeSingle();
 
-      if (checkError) {
-        throw checkError;
-      }
+      if (existingError) throw existingError;
 
       if (existingApplication) {
         setApplication(existingApplication);
         return;
       }
 
-      /*
-       * Create the application.
-       *
-       * We intentionally do NOT set talent_id from
-       * anything supplied by the frontend form.
-       *
-       * It comes directly from auth.uid().
-       */
       const { data: newApplication, error: insertError } =
         await supabase
           .from("applications")
@@ -247,12 +236,15 @@ export default function OpportunityDetails() {
             opportunity_id: id,
             talent_id: user.id,
             status: "pending",
+            cover_letter: "",
+            proposed_price: opportunity?.budget || null,
           })
           .select(`
             id,
             opportunity_id,
             talent_id,
-            cover_message,
+            cover_letter,
+            proposed_price,
             status,
             created_at,
             updated_at
@@ -270,24 +262,14 @@ export default function OpportunityDetails() {
         err
       );
 
-      /*
-       * Handle duplicate application gracefully in case
-       * two requests happen at almost the same time.
-       */
-      if (
-        err?.code === "23505" ||
-        err?.message?.includes(
-          "unique_talent_opportunity"
-        )
-      ) {
-        await checkApplication();
-        return;
+      if (err?.code === "23505") {
+        setApplicationError("You have already applied for this opportunity.");
+      } else {
+        setApplicationError(
+          err?.message ||
+            "Unable to submit your application right now."
+        );
       }
-
-      setApplicationError(
-        err?.message ||
-          "We couldn't submit your application. Please try again."
-      );
     } finally {
       setSubmitting(false);
     }

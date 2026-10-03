@@ -93,15 +93,15 @@ const STATUS_CONFIG = {
   },
 };
 
-const WITHDRAWABLE_STATUSES = ["pending", "received"];
+const WITHDRAWABLE_STATUSES = ["pending"];
 
 const FILTERS = [
   { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
-  { key: "received", label: "Received" },
   { key: "shortlisted", label: "Shortlisted" },
   { key: "accepted", label: "Accepted" },
   { key: "rejected", label: "Rejected" },
+  { key: "withdrawn", label: "Withdrawn" },
 ];
 
 function formatCurrency(value) {
@@ -293,24 +293,25 @@ export default function TalentMyApplications() {
     };
   }, [loadApplications]);
 
-  const counts = useMemo(() => {
-    const result = {
-      all: applications.length,
-      pending: 0,
-      received: 0,
-      shortlisted: 0,
-      accepted: 0,
-      rejected: 0,
-    };
 
-    applications.forEach((application) => {
-      if (result[application.status] !== undefined) {
-        result[application.status]++;
-      }
-    });
+const counts = useMemo(() => {
+  const result = {
+    all: applications.length,
+    pending: 0,
+    shortlisted: 0,
+    accepted: 0,
+    rejected: 0,
+    withdrawn: 0,
+  };
 
-    return result;
-  }, [applications]);
+  applications.forEach((application) => {
+    if (result[application.status] !== undefined) {
+      result[application.status]++;
+    }
+  });
+
+  return result;
+}, [applications]);
 
   const successRate = useMemo(() => {
     const decided = counts.accepted + counts.rejected;
@@ -447,14 +448,7 @@ export default function TalentMyApplications() {
             onClick={() => setActiveFilter("pending")}
             accent="amber"
           />
-          <SummaryCard
-            label="Received"
-            value={counts.received}
-            icon={Send}
-            active={activeFilter === "received"}
-            onClick={() => setActiveFilter("received")}
-            accent="blue"
-          />
+
           <SummaryCard
             label="Shortlisted"
             value={counts.shortlisted}
