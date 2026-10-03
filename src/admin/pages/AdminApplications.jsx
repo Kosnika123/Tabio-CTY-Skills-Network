@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "All Applications" },
