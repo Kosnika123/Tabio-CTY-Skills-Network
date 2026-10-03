@@ -75,8 +75,8 @@ function getOpportunityImage(opportunity) {
 /* Animations live here so no extra config or library is needed */
 const animationStyles = `
   @keyframes tcsn-rise {
-    from { opacity: 0; transform: translateY(18px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { transform: translateY(18px); }
+    to   { transform: translateY(0); }
   }
   @keyframes tcsn-hero {
     from { opacity: 0; transform: translateY(14px); }
@@ -87,7 +87,7 @@ const animationStyles = `
     to   { transform: translateX(100%); }
   }
 
-  .tcsn-rise { opacity: 0; animation: tcsn-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .tcsn-rise { opacity: 1; animation: tcsn-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
   .tcsn-hero { opacity: 0; animation: tcsn-hero 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
   .tcsn-skeleton { position: relative; overflow: hidden; }
@@ -433,7 +433,7 @@ export default function Opportunities() {
 
         {/* LOADING */}
         {loading && (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((item) => (
               <div
                 key={item}
@@ -506,7 +506,7 @@ export default function Opportunities() {
         {!loading && !error && filteredOpportunities.length > 0 && (
           <div
             key={`${category}-${sort}`}
-            className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
           >
             {filteredOpportunities.map((opportunity, index) => {
               const image = getOpportunityImage(opportunity);
@@ -517,7 +517,7 @@ export default function Opportunities() {
               return (
                 <article
                   key={opportunity.id}
-                  className="tcsn-rise tcsn-card group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-xl"
+                  className="tcsn-rise tcsn-card group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:border-slate-300 hover:shadow-xl"
                   style={{ animationDelay: `${Math.min(index, 8) * 70}ms` }}
                 >
                   {/* IMAGE */}
