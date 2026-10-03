@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Opportunities from "./pages/Opportunities";
+import OpportunityDetails from "./pages/OpportunityDetails";
 
 import AdminRoute from "./admin/AdminRoute";
 import AdminLayout from "./admin/AdminLayout";
@@ -62,6 +63,11 @@ function App() {
         <Route
   path="/opportunities"
   element={<Opportunities />}
+/>
+
+<Route
+  path="/opportunities/:id"
+  element={<OpportunityDetails />}
 />
 
       </Route>
